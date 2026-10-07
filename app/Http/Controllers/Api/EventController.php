@@ -7,9 +7,7 @@ use Illuminate\Http\Request;
 
 class EventController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
+    
     public function index()
     {
         $events = Event::with('organizer','ticketTypes')
@@ -20,35 +18,69 @@ class EventController extends Controller
         ]);
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
     public function store(Request $request)
     {
-        //
+        $validation = $request->validate([
+            'title' => 'required|string|max:255',
+            'description'=>'nullable|string',
+            'location' => 'required|string|max:255',
+            'starts_at'=> 'require|date',
+            'ends_at' => 'required|date|after:starts_at',
+            'image' => 'nullable|string|max:255',
+            'is_active' => 'sometimes|boolean',
+        ]);
+        $event = $request->user()->enents()->create($validation);
+        
+        return response()->json([
+            'message' => 'Event created successfully',
+            'event'=>$event,
+        ],201);
     }
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(string $id)
+    
+    public function show(Event $event)
     {
-        //
+        $event->load('organizer','ticketTypes');
+        return response()->json([
+            'event'=>$event
+        ]);
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, string $id)
+    
+    public function update(Request $request, Event $event)
     {
-        //
+        if($event->organizer_id !== $request->user()->id)
+        {
+            return response()->json([
+                'message'=>'You are not allowed to update this event'
+            ],403);
+        }
+        $validation = $request->update([
+            'title' => 'required|string|max:255',
+            'description'=>'nullable|string',
+            'location' => 'required|string|max:255',
+            'starts_at'=> 'require|date',
+            'ends_at' => 'required|date|after:starts_at',
+            'image' => 'nullable|string|max:255',
+            'is_active' => 'sometimes|boolean',
+        ]);
+        $event->update($validation);
+        return response()->json([
+            'message' => 'Event updated successfully',
+            'event'=>$event,
+        ],201);
+
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(string $id)
+    
+    public function destroy(string $id, Event $event)
     {
-        //
+        return response()->json([
+            'message'=>'You are not allowed to delete this event'
+        ],403);
+        $event->delete();
+        return response()->json([
+            'message'=>'event event deleted succefully'
+        ]);
     }
 }
